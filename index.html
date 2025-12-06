@@ -12,10 +12,35 @@
     <p class="eyebrow">For Alyssa</p>
     <h1>Merry Christmas</h1>
     <p class="note">
-      Thank you for making this year brighter. Here’s a little universe just for you.
+      Thank you for making this year brighter. Here's a little universe just for you.
       Take a spin through it while our song plays.
     </p>
     <button id="play-music" type="button">Play our song</button>
+    <div class="controls">
+      <div class="control-block">
+        <p class="label">Orbit drift</p>
+        <button class="ghost" id="orbit-toggle" type="button">Pause drift</button>
+      </div>
+      <div class="control-block">
+        <div class="label-row">
+          <p class="label">Speed</p>
+          <span class="value" data-speed-value>1.0x</span>
+        </div>
+        <input
+          type="range"
+          id="speed-control"
+          min="0.4"
+          max="1.8"
+          step="0.1"
+          value="1"
+        />
+      </div>
+      <div class="control-block">
+        <p class="label">Make a wish</p>
+        <button class="ghost" id="pulse" type="button">Send a pulse</button>
+      </div>
+    </div>
+    <p class="hint">Tap the sky to scatter a little extra shimmer.</p>
     <p class="signature">With love, always.</p>
   </div>
   <script type="x-shader/x-vertex" id="vertexShader">

@@ -124,6 +124,73 @@ button:disabled {
   box-shadow: none;
 }
 
+.controls {
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.control-block {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 0.6rem;
+}
+
+.label {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fc8ff;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.value {
+  font-size: 0.95rem;
+  color: #f4d1a1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ghost {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8f5ff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+  padding: 0.75rem 1rem;
+}
+
+.ghost:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.ghost.is-off {
+  background: rgba(255, 255, 255, 0.04);
+  color: #9fb1c6;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: #ffd166;
+  cursor: pointer;
+}
+
+.hint {
+  margin-top: 0.4rem;
+  color: #9fb1c6;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 600px) {
   h1 {
     font-size: 2.4rem;

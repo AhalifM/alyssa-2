@@ -29,8 +29,21 @@ class World {
     this.scene.background = new THREE.Color("#00101a");
     this.clock = new THREE.Clock();
     this.data = 0;
-    this.time = { current: 0, t0: 0, t1: 0, t: 0, frequency: 0.0005 };
+    this.baseFrequency = 0.0005;
+    this.time = {
+      current: 0,
+      t0: 0,
+      t1: 0,
+      t: 0,
+      frequency: this.baseFrequency
+    };
     this.angle = { x: 0, z: 0 };
+    this.visualSpeed = 1;
+    this.orbitSpeed = 1;
+    this.orbitEnabled = true;
+    this.returningHome = false;
+    this.lastPulse = 0;
+    this.listener = null;
     this.width = width || window.innerWidth;
     this.height = height || window.innerHeight;
     this.aspectRatio = this.width / this.height;
@@ -60,6 +73,7 @@ class World {
     this.timer = 0;
     this.addToScene();
     this.addButton();
+    this.addControls();
 
     this.render();
     // this.postProcessing();
@@ -76,18 +90,19 @@ class World {
       60,
       (this.time.current - this.time.elapsed) * 1000
     );
-    if (this.analyser && this.isRunning) {
+    const hasAnalyser = this.analyser && this.isRunning;
+
+    if (hasAnalyser) {
       this.time.t = this.time.elapsed - this.time.t0 + this.time.t1;
       this.data = this.analyser.getAverageFrequency();
       this.data *= this.data / 2000;
-      this.angle.x += this.time.delta * 0.001 * 0.63;
-      this.angle.z += this.time.delta * 0.001 * 0.39;
       const justFinished = this.isRunning && !this.sound.isPlaying;
       if (justFinished) {
         this.time.t1 = this.time.t;
         this.audioBtn.textContent = "Play again";
         this.audioBtn.disabled = false;
         this.isRunning = false;
+        this.returningHome = true;
         const tl = gsap.timeline();
         this.angle.x = 0;
         this.angle.z = 0;
@@ -100,16 +115,30 @@ class World {
         tl.to(this.audioBtn, {
           opacity: () => 1,
           duration: 1,
-          ease: "power1.out"
+          ease: "power1.out",
+          onComplete: () => {
+            this.returningHome = false;
+          }
         });
-      } else {
-        this.camera.position.x = Math.sin(this.angle.x) * this.parameters.a;
-        this.camera.position.z = Math.min(
-          Math.max(Math.cos(this.angle.z) * this.parameters.c, -4.5),
-          4.5
-        );
       }
+    } else {
+      this.data = this.data * 0.96;
     }
+
+    const orbitAllowed = this.orbitEnabled && !this.returningHome;
+    if (orbitAllowed) {
+      const orbitBoost = this.isRunning ? 1 + this.data * 0.02 : 0.4;
+      const orbitStep =
+        this.time.delta * 0.001 * this.orbitSpeed * orbitBoost;
+      this.angle.x += 0.63 * orbitStep;
+      this.angle.z += 0.39 * orbitStep;
+      this.camera.position.x = Math.sin(this.angle.x) * this.parameters.a;
+      this.camera.position.z = Math.min(
+        Math.max(Math.cos(this.angle.z) * this.parameters.c, -4.5),
+        4.5
+      );
+    }
+
     this.camera.lookAt(this.scene.position);
     this.spiralMaterial.uniforms.uTime.value +=
       this.time.delta * this.time.frequency * (1 + this.data * 0.2);
@@ -264,8 +293,9 @@ class World {
     this.addOctahedrons();
   }
   addButton() {
-    this.audioBtn = document.querySelector("button");
+    this.audioBtn = document.getElementById("play-music");
     this.audioBtn.addEventListener("click", () => {
+      this.resumeAudioContext();
       this.audioBtn.disabled = true;
       if (this.analyser) {
         this.sound.play();
@@ -286,12 +316,107 @@ class World {
     });
   }
 
+  addControls() {
+    this.speedInput = document.getElementById("speed-control");
+    this.speedValue = document.querySelector("[data-speed-value]");
+    this.orbitToggle = document.getElementById("orbit-toggle");
+    this.pulseBtn = document.getElementById("pulse");
+    this.canvasEl = this.renderer.domElement;
+
+    if (this.speedInput && this.speedValue) {
+      const updateSpeed = (value) => {
+        const numeric = Number(value);
+        this.visualSpeed = numeric;
+        this.orbitSpeed = numeric;
+        this.time.frequency = this.baseFrequency * this.visualSpeed;
+        this.speedValue.textContent = `${numeric.toFixed(1)}x`;
+      };
+      this.speedInput.addEventListener("input", (event) => {
+        updateSpeed(event.target.value);
+      });
+      updateSpeed(this.speedInput.value);
+    }
+
+    if (this.orbitToggle) {
+      this.orbitToggle.addEventListener("click", () => {
+        this.orbitEnabled = !this.orbitEnabled;
+        this.orbitToggle.textContent = this.orbitEnabled
+          ? "Pause drift"
+          : "Resume drift";
+        this.orbitToggle.classList.toggle("is-off", !this.orbitEnabled);
+      });
+    }
+
+    if (this.pulseBtn) {
+      this.pulseBtn.addEventListener("click", () => {
+        this.pulseUniverse();
+      });
+    }
+
+    if (this.canvasEl) {
+      this.canvasEl.addEventListener("click", () => {
+        const now = performance.now();
+        if (now - this.lastPulse < 350) return;
+        this.pulseUniverse();
+        this.lastPulse = now;
+      });
+    }
+  }
+
+  pulseUniverse() {
+    const targetFrequency = this.baseFrequency * this.visualSpeed;
+    gsap.fromTo(
+      this.time,
+      { frequency: targetFrequency * 1.5 },
+      { frequency: targetFrequency, duration: 2, ease: "power1.out" }
+    );
+    gsap.to(this.spiralMaterial.uniforms.uSize, {
+      value: this.spiralMaterial.uniforms.uSize.value * 1.4,
+      duration: 0.55,
+      yoyo: true,
+      repeat: 1,
+      ease: "power2.inOut"
+    });
+    gsap.to(this.octas.scale, {
+      x: 1.08,
+      y: 1.08,
+      z: 1.08,
+      duration: 0.6,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    });
+    gsap.to(this.externalSphere.rotation, {
+      y: "+=1.2",
+      duration: 1.2,
+      ease: "power3.out"
+    });
+  }
+
+  ensureListener() {
+    if (!this.listener) {
+      this.listener = new THREE.AudioListener();
+      this.camera.add(this.listener);
+    }
+    return this.listener;
+  }
+
+  resumeAudioContext() {
+    const listener = this.ensureListener();
+    const context = listener.context;
+    if (context && context.state === "suspended") {
+      context.resume();
+    }
+  }
+
   loadMusic() {
     return new Promise((resolve) => {
-      const listener = new THREE.AudioListener();
-      this.camera.add(listener);
+      const listener = this.ensureListener();
+      this.resumeAudioContext();
       // create a global audio source
-      this.sound = new THREE.Audio(listener);
+      if (!this.sound) {
+        this.sound = new THREE.Audio(listener);
+      }
       const audioLoader = new THREE.AudioLoader();
       audioLoader.load(
         "https://assets.codepen.io/74321/short-snow_01.mp3",
@@ -304,7 +429,7 @@ class World {
           // get the average frequency of the sound
           const data = this.analyser.getAverageFrequency();
           this.isRunning = true;
-          this.t0 = this.time.elapsed;
+          this.time.t0 = this.time.elapsed;
           resolve(data);
         },
         (progress) => {
