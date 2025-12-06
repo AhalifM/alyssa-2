@@ -140,7 +140,9 @@ class World {
 
       // Update renderer
       this.renderer.setSize(this.width, this.height);
-      this.composer.setSize(this.width, this.height);
+      if (this.composer) {
+        this.composer.setSize(this.width, this.height);
+      }
     });
   }
   addSpiral() {
@@ -160,7 +162,7 @@ class World {
     const phis = new Float32Array(count);
     const randoms = new Float32Array(count);
     const randoms1 = new Float32Array(count);
-    const colorChoices = ["pink", "green", "cyan", "wheat", "red"];
+    const colorChoices = ["#ff6b6b", "#ffd166", "#ffe8b6", "#9be7ff", "#c5f36b"];
 
     const squareGeometry = new THREE.PlaneGeometry(1, 1);
     this.instancedGeometry = new THREE.InstancedBufferGeometry();
